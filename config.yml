@@ -1,0 +1,29 @@
+scraper:
+  start_urls:
+    - https://www.ema.europa.eu/en/human-regulatory-overview/research-and-development/scientific-guidelines/multidisciplinary-guidelines/multidisciplinary-gene-therapy
+  
+  allowed_paths:
+    - /en/human-regulatory
+    - /en/documents/
+    - /en/guideline-
+  
+  file_patterns:
+    - '\.pdf$'
+    - '\.xlsx?$'
+    - '\.docx?$'
+  
+  exclude_patterns:
+    - '_(?!en)[a-z]{2}\.pdf$'   # Non-English PDFs
+    - '\.(svg|png|jpe?g|gif)$'  # Images
+    - '^mailto:'
+    - '^tel:'
+  
+  max_nodes: 100
+  download_delay: 1
+
+storage:
+  database_path: ./data/crawl.db
+  documents_path: ./data/documents
+
+graph:
+  path: ./data/graph.gpickle

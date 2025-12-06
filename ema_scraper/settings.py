@@ -1,4 +1,4 @@
-# Scrapy settings for ema_scrapy project
+# Scrapy settings for ema_scraper project
 #
 # For simplicity, this file contains only settings considered important or
 # commonly used. You can find more settings consulting the documentation:
@@ -7,14 +7,14 @@
 #     https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
 #     https://docs.scrapy.org/en/latest/topics/spider-middleware.html
 
-BOT_NAME = "ema_scrapy"
+BOT_NAME = "ema_scraper"
 
-SPIDER_MODULES = ["ema_scrapy.spiders"]
-NEWSPIDER_MODULE = "ema_scrapy.spiders"
+SPIDER_MODULES = ["ema_scraper.spiders"]
+NEWSPIDER_MODULE = "ema_scraper.spiders"
 
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
-#USER_AGENT = "ema_scrapy (+http://www.yourdomain.com)"
+USER_AGENT = "ema_scraper (+mdi@mailfence.com)"
 
 # Obey robots.txt rules
 ROBOTSTXT_OBEY = True
@@ -25,9 +25,9 @@ ROBOTSTXT_OBEY = True
 # Configure a delay for requests for the same website (default: 0)
 # See https://docs.scrapy.org/en/latest/topics/settings.html#download-delay
 # See also autothrottle settings and docs
-#DOWNLOAD_DELAY = 3
+DOWNLOAD_DELAY = 3
 # The download delay setting will honor only one of:
-#CONCURRENT_REQUESTS_PER_DOMAIN = 16
+CONCURRENT_REQUESTS_PER_DOMAIN = 16
 #CONCURRENT_REQUESTS_PER_IP = 16
 
 # Disable cookies (enabled by default)
@@ -45,13 +45,13 @@ ROBOTSTXT_OBEY = True
 # Enable or disable spider middlewares
 # See https://docs.scrapy.org/en/latest/topics/spider-middleware.html
 #SPIDER_MIDDLEWARES = {
-#    "ema_scrapy.middlewares.EmaScrapySpiderMiddleware": 543,
+#    "ema_scraper.middlewares.EmaScrapySpiderMiddleware": 543,
 #}
 
 # Enable or disable downloader middlewares
 # See https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
 #DOWNLOADER_MIDDLEWARES = {
-#    "ema_scrapy.middlewares.EmaScrapyDownloaderMiddleware": 543,
+#    "ema_scraper.middlewares.EmaScrapyDownloaderMiddleware": 543,
 #}
 
 # Enable or disable extensions
@@ -63,7 +63,7 @@ ROBOTSTXT_OBEY = True
 # Configure item pipelines
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
 #ITEM_PIPELINES = {
-#    "ema_scrapy.pipelines.EmaScrapyPipeline": 300,
+#    "ema_scraper.pipelines.EmaScrapyPipeline": 300,
 #}
 
 # Enable and configure the AutoThrottle extension (disabled by default)
