@@ -2,7 +2,7 @@ scraper:
   start_urls:
     - https://www.ema.europa.eu/en/human-regulatory-overview/research-and-development/scientific-guidelines/multidisciplinary-guidelines/multidisciplinary-gene-therapy
   
-  allowed_paths:
+  allowed_domains:
     - /en/human-regulatory
     - /en/documents/
     - /en/guideline-
@@ -11,7 +11,19 @@ scraper:
     - '\.pdf$'
     - '\.xlsx?$'
     - '\.docx?$'
-  
+
+  image_patterns:
+    - '\.jpeg$'
+    - '\.jpg$'
+    - '\.png$'
+    - '\.tiff$'
+
+  video_patterns:
+    - '\.mov$'
+
+  audion_patterns:
+    - '\.mp4$'
+
   exclude_patterns:
     - '_(?!en)[a-z]{2}\.pdf$'   # Non-English PDFs
     - '\.(svg|png|jpe?g|gif)$'  # Images
@@ -22,6 +34,7 @@ scraper:
   download_delay: 1
 
 storage:
+  engine: "mongo"
   database_path: ./data/crawl.db
   documents_path: ./data/documents
 

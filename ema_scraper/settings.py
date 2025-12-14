@@ -6,6 +6,7 @@
 #     https://docs.scrapy.org/en/latest/topics/settings.html
 #     https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
 #     https://docs.scrapy.org/en/latest/topics/spider-middleware.html
+from pathlib import Path
 
 BOT_NAME = "ema_scraper"
 
@@ -14,7 +15,7 @@ NEWSPIDER_MODULE = "ema_scraper.spiders"
 
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
-USER_AGENT = "ema_scraper (+mdi@mailfence.com)"
+USER_AGENT = "Personal Project (mdi@mailfence.com)"
 
 # Obey robots.txt rules
 ROBOTSTXT_OBEY = True
@@ -44,9 +45,11 @@ CONCURRENT_REQUESTS_PER_DOMAIN = 16
 
 # Enable or disable spider middlewares
 # See https://docs.scrapy.org/en/latest/topics/spider-middleware.html
-#SPIDER_MIDDLEWARES = {
-#    "ema_scraper.middlewares.EmaScrapySpiderMiddleware": 543,
-#}
+SPIDER_MIDDLEWARES = {
+    "ema_scraper.middlewares.EmaScrapySpiderMiddleware": 10,
+}
+DEPTH_LIMIT = 8
+DEPTH_PRIORITY = 1
 
 # Enable or disable downloader middlewares
 # See https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
@@ -62,9 +65,10 @@ CONCURRENT_REQUESTS_PER_DOMAIN = 16
 
 # Configure item pipelines
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
-#ITEM_PIPELINES = {
-#    "ema_scraper.pipelines.EmaScrapyPipeline": 300,
-#}
+ITEM_PIPELINES = {
+    "ema_scraper.pipelines.MongoPipeline": 200,
+    "scrapy.pipelines.files.FilesPipeline": 300,
+}
 
 # Enable and configure the AutoThrottle extension (disabled by default)
 # See https://docs.scrapy.org/en/latest/topics/autothrottle.html
@@ -91,3 +95,17 @@ CONCURRENT_REQUESTS_PER_DOMAIN = 16
 REQUEST_FINGERPRINTER_IMPLEMENTATION = "2.7"
 TWISTED_REACTOR = "twisted.internet.asyncioreactor.AsyncioSelectorReactor"
 FEED_EXPORT_ENCODING = "utf-8"
+
+# Connection to MongoDB
+MONGO_URI = "localhost:27017"
+MONGO_DATABASE = "ema_scraper"
+
+
+ITEM_PIPELINES = {
+    "ema_scraper.pipelines.RedirectAwareFilesPipeline": 1,
+    "ema_scraper.pipelines.MongoPipeline": 2
+}
+
+# Important: enable redirect handling
+MEDIA_ALLOW_REDIRECTS = True
+FILES_STORE = str(Path('~/Nextcloud/datasets/ema_scraper/files').expanduser())

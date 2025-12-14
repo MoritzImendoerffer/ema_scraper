@@ -8,7 +8,7 @@ The scraper does scrape the web page into a mongoDB database with the aim to pro
 # Roadmap
 
 
-## Envised project structure
+## Project structure
 
 - **ema-rag/**
   - `config.yaml` - All configuration (patterns, paths, etc.)
@@ -34,6 +34,5 @@ The scraper does scrape the web page into a mongoDB database with the aim to pro
     - `__init__.py`
     - `local_hf.py`
 - **vectordb/** - Vector store (for later)
-
 
 
