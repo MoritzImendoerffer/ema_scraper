@@ -192,10 +192,12 @@ class EmaSpider(CrawlSpider):
                 
                 for pl in page_links:
                     try:
+                        logger.info(f"Following page link (source, target): {(response.url, pl)})")
                         yield response.follow(pl, self.parse, meta={"source_url": response.url})
                     except Exception as e:
                         logger.warning(f"Could not follow: {pl} with error {e}")
                 
+                logger.info(f"Yielded item: {response.url}")
                 yield loader.load_item()
 
             else:

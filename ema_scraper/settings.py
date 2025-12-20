@@ -66,8 +66,9 @@ DEPTH_PRIORITY = 1
 # Configure item pipelines
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
 ITEM_PIPELINES = {
-    "ema_scraper.pipelines.MongoPipeline": 200,
-    "scrapy.pipelines.files.FilesPipeline": 300,
+    "ema_scraper.pipelines.RedirectAwareFilesPipeline": 1,
+    "scrapy.pipelines.files.class EmaScrapyPipeline:": 2,
+        "ema_scraper.pipelines.MongoPipeline": 3,
 }
 
 # Enable and configure the AutoThrottle extension (disabled by default)
@@ -100,12 +101,7 @@ FEED_EXPORT_ENCODING = "utf-8"
 MONGO_URI = "localhost:27017"
 MONGO_DATABASE = "ema_scraper"
 
-
-ITEM_PIPELINES = {
-    "ema_scraper.pipelines.RedirectAwareFilesPipeline": 1,
-    "ema_scraper.pipelines.MongoPipeline": 2
-}
-
 # Important: enable redirect handling
 MEDIA_ALLOW_REDIRECTS = True
 FILES_STORE = str(Path('~/Nextcloud/datasets/ema_scraper/files').expanduser())
+FILES_URLS_FIELD = 'file_links'
