@@ -109,5 +109,5 @@ MONGO_DATABASE = "ema_scraper"
 
 # Important: enable redirect handling
 MEDIA_ALLOW_REDIRECTS = True
-FILES_STORE = str(Path('~/Nextcloud/datasets/ema_scraper/files').expanduser())
+FILES_STORE = str(Path('~/Nextcloud/Datasets/ema_scraper/files').expanduser())
 FILES_URLS_FIELD = 'file_links'

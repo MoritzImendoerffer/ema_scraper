@@ -175,18 +175,17 @@ class EmaSpider(CrawlSpider):
                             file_links.append(_link)
                 
                 # exclude unwanted pattern in links
-                excluded_file_links = []
+                excluded_page_links = []
                 for search_pattern in config["scraper"]["exclude_patterns"]:
-                    for _link in file_links:
+                    for _link in flat_links:
                         if re.findall(search_pattern, _link):
-                            excluded_file_links.append(_link)
-                file_links = list(set(file_links) - set(excluded_file_links))
+                            excluded_page_links.append(_link)
                 
                 loader.add_value("file_links", file_links)
 
                 
                 # follow all links in the page
-                page_links = list(set(flat_links) - set(file_links))
+                page_links = list(set(flat_links) - set(file_links) - set(excluded_page_links))
                 loader.add_value("page_links", page_links)
                 
                 # TODO check if I need a Link object to follow
