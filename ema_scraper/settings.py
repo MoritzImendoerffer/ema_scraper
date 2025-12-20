@@ -67,8 +67,8 @@ DEPTH_PRIORITY = 1
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
 ITEM_PIPELINES = {
     "ema_scraper.pipelines.RedirectAwareFilesPipeline": 1,
-    "scrapy.pipelines.files.class EmaScrapyPipeline:": 2,
-        "ema_scraper.pipelines.MongoPipeline": 3,
+    #"ema_scraper.pipelines.EmaScrapyPipeline:": 2,
+    "ema_scraper.pipelines.MongoPipeline": 2,
 }
 
 # Enable and configure the AutoThrottle extension (disabled by default)
