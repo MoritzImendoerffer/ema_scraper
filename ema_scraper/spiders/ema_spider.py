@@ -8,6 +8,7 @@ from ema_scraper.items import LinkType, DocType
 import regex as re
 import logging
 from config_loader import load_config
+from scrapy.link import Link
 
 """
 Scraper for ema.europa.eu
@@ -49,8 +50,8 @@ class EmaSpider(CrawlSpider):
     allowed_domains = []
     start_urls = []
     max_nodes = 200
-    visited_count = 0
-
+    visited_count = 0  
+    
     # TODO: add option to steer via settings or other means
     regex_file_patterns = [
         r"^https?://eur-lex\.europa\.eu/.*\?uri=.*:PDF$",
@@ -72,32 +73,12 @@ class EmaSpider(CrawlSpider):
         r".*\.ZIP"
         r".*/EN/TXT/PDF/.*"  # include eur-lex.europa.eu items if PDF
     ]
-
-    regex_exclude_patterns = [
-        r"^mailto:.*",
-        r".*\.svg",
-        r".*\.png",
-        r".*\.jpeg",
-        r".*\.jpg",
-        r".*\.xml",
-        r".*\.xsd",
-        r".*javascript:.*",
-        r"^tel:.*",
-        r"^https://www.ema.europa.eu.*/documents/*/.*_(?!en)[a-z]{2}-\d{1,2}.pdf",  # same but for all documents with version numbers
-        r"^https://www.ema.europa.eu.*/documents/*/.*_(?!en)[a-z]{2}.pdf",  # exclude all non english pdfs from ema
-        r".*\/(?!EN)[A-Z]{2}\/TXT\/.*", # for the eur-lex.europa.eu items, exclude all non english versions
-        r"^https://eur-lex.europa.eu/legal-content/(?!EN)[A-Z]{2}/ALL" # for the eur-lex.europa.eu items, exclude all non english versions
-    ]
-    regex_modify_links_to_filelinks = [
-        (r"(https://eur-lex\.europa\.eu/legal-content/EN/)ALL", r"\1TXT/HTML", # only download the english html version. Ignore all other links
-         r"(https://ema.europa.eu):\d{3}", r"\1")  # replace port number 443 in url
-
-    ]    
     
-    link_extractor = LinkExtractor()
     rules = (
         Rule(LinkExtractor(allow=r'/'), callback='parse', follow=True),
     )
+    
+    exluded_sections = ["Topics"]
 
     allowed_domains = scraper_config.get("allowed_domains", list())
     start_urls = scraper_config.get("start_urls", list())
@@ -136,60 +117,84 @@ class EmaSpider(CrawlSpider):
         loader.add_value('content_type', content_type)
         if "source_url" in response.meta.keys():
             loader.add_value("source_url", response.meta["source_url"])
-
         try:
             if content_type == "text/html":
                 
-                # TODO: parse sections of the main body
-                # get heading-title in main-content
-                # get labels from items with class containing "ema-bg-category badge" and "ema-bg-topic badge" for meta tags
-                # get text from class "region-conten-main row"
-                # TODO: there is a class called <article class=content-with-sidebar node ema-general--full ...
-                # how many article types are there? Is it possible to extract all article types from the ema page? 
-                # Or should I go one by one and add new parsing strategies once new articles there are?
-                # Probably raw html in mongoDB and while looping over mongo nodes and then decide on parsing strategy!!
-                # TODO: think about integrating json file information
+                cat_labels = []
+                try:
+                    cat_labels = [item.css("::text").get() for item in response.css(".ema-bg-category")]
+                except Exception as e:
+                    logger.warning(f"Error in category label extraction for {response.url} with error {e}")
+                loader.add_value("ema_category", cat_labels)
                 
+                topic_labels = []
+                try:
+                    topic_labels = [item.css("::text").get() for item in response.css(".ema-bg-topic")]
+                except Exception as e:
+                    logger.warning(f"Error in topic label extraction for {response.url} with error {e}")
+                loader.add_value("ema_topic", topic_labels)
+                   
+                #main_content = response.css(".ema-node-content-wrapper")
+                main_items = response.css(".ema-node-content-wrapper > .item")
 
-                all_links = self.link_extractor.link_extractor.extract_links(response)
-                all_link_urls = [item.url for item in all_links]
-                page_links = all_link_urls
-
-                # get the files to download using scrapys FileDownloader
-                # TODO: check if still relevant or if a simpler method is possible
-                # e.g. by simply using the main body of the page
+                
+                '''
+                Loop over the section from the sidebar, extract the page content and parse links and text for each section if not exluded.
+                
+                '''
+                # usually there is a summary on top of the sections
+                # this part will not be reached by the sidebar nav items and contains a short summary
+                try:
+                    summary = " ".join([item.strip() for item in main_items[0].css("::text").getall()]).replace("  ", " ").strip()
+                except Exception as e:
+                    summary = ""
+                    logger.warning(f"Summary strategy does not work for {response.url} with error: {e}")
+                loader.add_value("summary", summary)
+                
+                # the individual sections defined in the sidebar
+                section_ids = [item.css("::attr(href)").get() for item in response.css(".bcl-inpage-navigation").css(".nav-item")]
+                all_links = []
+                page_links = []
                 file_links = []
+                section_titles = []
+                section_text = []
+                for id in section_ids:
+                    # get the parent item for each section which wraps all links and text
+                    section = response.xpath(f'//div[@id="{id[1:]}"]//ancestor::div[@class="item"]')
+                    heading = section.css("h2::text").get()
+                    if heading not in self.exluded_sections:
+                        section_titles.append(heading)
+                        text = section.css("p::text").getall()
+                        section_text.append(text)
+                        links = section.css("::attr(href)").getall()
+                        if links:
+                            all_links.append([response.urljoin(item) for item in links])
+                
+                section_info = {tit: {"text": tex, "links": lin} for tit, tex, lin in zip(section_titles, section_text, all_links)}
+                loader.add_value("sections", section_info)
+                
+                
+                # get the files to download using scrapys FileDownloader
+                flat_links = [subitem for item in all_links for subitem in item]
                 for search_pattern in self.regex_file_patterns:
-                    for _link in page_links:
+                    for _link in flat_links:
                         if re.findall(search_pattern, _link):
                             file_links.append(_link)
+                            
+                loader.add_value("file_links", file_links)
 
-                page_links = list(set(page_links) - set(file_links))
-
-                exclude_file_links = []
-                for search_pattern in self.regex_exclude_patterns:
-                    for _link in file_links:
-                        if re.findall(search_pattern, _link):
-                            exclude_file_links.append(_link)
-
-                file_links = list(set(file_links) - set(exclude_file_links))
                 
-                if file_links:
-                    for _f in file_links:
-                        if _f.endswith("_sk.pdf"):
-                            print(_f)
-                    loader.add_value("file_links", file_links)
-
                 # follow all links in the page
-                
+                page_links = list(set(flat_links) - set(file_links))
                 loader.add_value("page_links", page_links)
+                
+                # TODO check if I need a Link object to follow
                 
                 for pl in page_links:
                     try:
                         yield response.follow(pl, self.parse, meta={"source_url": response.url})
                     except Exception as e:
-                        with open('failed_requests.txt', 'a') as f:
-                            f.write(pl + ":" + " " + str(e) + "\n")
+                        logger.warning(f"Could not follow: {pl} with error {e}")
                 
                 yield loader.load_item()
 
@@ -201,7 +206,7 @@ class EmaSpider(CrawlSpider):
                 yield loader.load_item()
 
         except Exception as e:
-            logging.info(str(response.url) + ":" + " " + str(e))
+            logging.warning(f"Exception during parsing for {response.url} with error {e}")
         
 
     

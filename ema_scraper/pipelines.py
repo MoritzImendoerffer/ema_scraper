@@ -8,6 +8,7 @@
 #from itemadapter import ItemAdapter
 from scrapy.pipelines.files import FilesPipeline
 import pymongo
+import json
 class EmaScrapyPipeline:
     def process_item(self, item, spider):
         return item
@@ -24,7 +25,7 @@ class MongoPipeline:
     def from_crawler(cls, crawler):
         return cls(
             mongo_uri=crawler.settings.get("MONGO_URI"),
-            mongo_db=crawler.settings.get("MONGO_DATABASE", "items"),
+            mongo_db=crawler.settings.get("MONGO_DATABASE", cls.collection_name),
         )
 
     def open_spider(self, spider):
@@ -35,30 +36,7 @@ class MongoPipeline:
         self.client.close()
 
     def process_item(self, item, spider):
-        sitem = {}
-        resp = item["response"][0]
-        resp.request.callback = None
-        sitem["response"] = {}
-        keys_to_add = [key for key in item.keys() if key != 'response']
-        for key in keys_to_add:
-            sitem[key] = item[key]
-            
-        resp_keys_to_add = resp.attributes
-        att2add = ["url", "headers", "body", "request"]
-        for att in att2add:
-            if att not in resp_keys_to_add:
-                resp_keys_to_add.append(att)
-        for att in resp_keys_to_add:
-            if att in att2add:
-                sitem["response"][att] = eval(f"resp.{att}")
-            else:
-                sitem["response"][att] = None
-                
-        #TODO check if example with Itemsadaper might save me of using the hardcoded
-        # logic in process_item
-        # source https://docs.scrapy.org/en/latest/topics/item-pipeline.html
-        #self.db[self.collection_name].insert_one(ItemAdapter(item).asdict())
-        self.db[self.collection_name].insert_one(sitem)
+        self.db[self.collection_name].insert_one({key: value for key, value in item.items()})
         return item
 
 

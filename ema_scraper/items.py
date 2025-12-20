@@ -69,9 +69,16 @@ class PageItem(scrapy.Item):
     title = scrapy.Field()
     text_content = scrapy.Field()
     html_raw = scrapy.Field()
-    ema_tags = scrapy.Field()  # list[str]
+    ema_category = scrapy.Field()  # list[str]
+    ema_topic = scrapy.Field()
     metadata = scrapy.Field()  # dict
     crawled_at = scrapy.Field()  # datetime
+    content_type = scrapy.Field() # content type from html header
+    sections = scrapy.Field()
+    summary = scrapy.Field()
+    file_links = scrapy.Field()
+    page_links = scrapy.Field()
+    source_url = scrapy.Field()
 
 class DocItem(scrapy.Item):
     """A crawled HTML page."""
