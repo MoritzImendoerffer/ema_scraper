@@ -5,7 +5,10 @@
 
 import scrapy
 
-
+class PageItemSimple(scrapy.Item):
+    url = scrapy.Field()
+    html_raw = scrapy.Field()
+    
 class PageItem(scrapy.Item):
     """A crawled HTML page."""
     url = scrapy.Field()

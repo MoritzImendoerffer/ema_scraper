@@ -2,12 +2,13 @@ import pathlib
 import scrapy
 from scrapy.loader import ItemLoader
 from scrapy.linkextractors import LinkExtractor
-from scrapy.spiders import CrawlSpider, Rule
+from scrapy.spiders import CrawlSpider, Rule, SitemapSpider, Request
 from ema_scraper.items import PageItem
 import regex as re
 import logging
 from config_loader import load_config
 from scrapy.link import Link
+from urllib.parse import urlparse
 
 """
 Scraper for ema.europa.eu
@@ -33,6 +34,33 @@ logger = logging.getLogger(__name__)
 
 config = load_config(pathlib.Path("config.yml"))
 scraper_config = config["scraper"]
+
+class EmaSitemapSpider(SitemapSpider):
+    """
+    This might be simpler compared to my CrawlSpider approach
+    """
+    name = "ema"
+    sitemap_urls = ["https://www.ema.europa.eu/sitemap.xml"]
+    sitemap_rules = [
+        ("/en/human-regulatory-overview/", "parse_human_reg"),
+    ]
+
+    other_urls = []
+
+    async def start(self):
+        async for item_or_request in super().start():
+            yield item_or_request
+        for url in self.other_urls:
+            yield Request(url, self.parse_other)
+
+    def parse_human_epar(self, response):
+        pass
+
+    def parse_human_reg(self, response):
+        pass
+    
+    def parse_other(self, response):
+        pass
 
 class EmaSpider(CrawlSpider):
     name = "ema"
@@ -64,9 +92,6 @@ class EmaSpider(CrawlSpider):
         r".*/EN/TXT/PDF/.*"  # include eur-lex.europa.eu items if PDF
     ]
     
-    rules = (
-        Rule(LinkExtractor(allow=r'/'), callback='parse', follow=True),
-    )
     
     exluded_sections = ["Topics",
                         "Contact"]
@@ -75,6 +100,50 @@ class EmaSpider(CrawlSpider):
     start_urls = scraper_config.get("start_urls", list())
     max_nodes = scraper_config.get("max_nodes", 100)
 
+    parser_map = {
+        "/en/medicines/human/EPAR": "parse_with_sidebar",
+        "/en/human-regulatory-overview": "parse_with_sidebar",
+    }
+    
+    def get_parser_for_url(self, url):
+        """Find parser by longest matching prefix, fallback to parse_default"""
+        match_dict = {}
+        for key in self.parser_map.keys():
+            upath = urlparse(url).path.strip("/").split("/")
+            rpath = key.strip("/").split("/")
+            n_match = 0
+            for match_item in zip(upath, rpath):
+                if match_item[0] == match_item[1]:
+                    n_match += 1
+                else:
+                    break
+            
+            match_dict[key] = n_match
+        
+        # Filter to only patterns with at least 1 match
+        valid_matches = {k: v for k, v in match_dict.items() if v > 0}
+        
+        if valid_matches:
+            # Handle ties: use longest key as tiebreaker
+            parser_key = max(valid_matches.keys(), 
+                            key=lambda k: (valid_matches[k], len(k)))
+            parser_name = self.parser_map[parser_key]
+        else:
+            logger.warning(f"No valid matches found using default parser: {url}")
+            parser_name = "parse_default"
+        
+        parser_method = getattr(self, parser_name, None)
+        if parser_method is None:
+            logger.warning(f"Parser method '{parser_name}' not found! Using parse_default")
+            parser_method = self.parse_default
+            
+        logger.info(f"Parsing {url} with {parser_method.__name__}")
+        
+        return parser_method
+    
+    def parse(self, response):
+        parser = self.get_parser_for_url(response.url)
+        return parser(response)
 
     def start_requests(self):
         for url in self.start_urls:
@@ -89,17 +158,22 @@ class EmaSpider(CrawlSpider):
             return None
         return None
     
-    def _parse_main_body(self, response):
+    def parse_default(self, response):
+        return self.parse_with_sidebar(response)
+    
+    def parse_human_epar(self, response):
+        """ Parser for EPAR sites like:
+        https://www.ema.europa.eu/en/medicines/human/EPAR
         
-        return 0 
-
-    def parse(self, response):
-        self.visited_count += 1
-        
-        if self.visited_count > self.max_nodes:
-            logger.info("Reached count max_nodes. Stopping")
-            return
-        
+        https://www.ema.europa.eu/en/medicines/human/EPAR/avastin
+        """
+        raise NotImplementedError
+    
+    
+    def parse_with_sidebar(self, response):
+        """ Standard parser for sites like
+        https://www.ema.europa.eu/en/human-regulatory-overview/research-development/quality-design
+        """
         # main content is in class region-content
         content_type = self.get_content_type(response)
         loader = ItemLoader(item=PageItem(), response=response)
@@ -173,7 +247,6 @@ class EmaSpider(CrawlSpider):
                     for _link in flat_links:
                         if re.findall(search_pattern, _link):
                             file_links.append(_link)
-                # TODO: use exclude domains
                 
                 # exclude unwanted pattern in links
                 excluded_page_links = []

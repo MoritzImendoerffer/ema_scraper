@@ -1,5 +1,6 @@
 scraper:
   start_urls:
+    - https://www.ema.europa.eu/en/medicines/human/EPAR/dectova
     - https://www.ema.europa.eu/en/human-regulatory-overview/research-development
     - https://www.ema.europa.eu/en/human-regulatory-overview/marketing-authorisation
     - https://www.ema.europa.eu/en/human-regulatory-overview/post-authorisation
