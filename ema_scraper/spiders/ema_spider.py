@@ -47,7 +47,7 @@ registered_parser = {
 }
 class EmaSpider(CrawlSpider):
     name = "ema"
-    allowed_domains = []
+    allowed_domains = []  # populated from config
     start_urls = []
     max_nodes = 200
     visited_count = 0  

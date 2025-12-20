@@ -3,9 +3,7 @@ scraper:
     - https://www.ema.europa.eu/en/human-regulatory-overview/research-and-development/scientific-guidelines/multidisciplinary-guidelines/multidisciplinary-gene-therapy
   
   allowed_domains:
-    - /en/human-regulatory
-    - /en/documents/
-    - /en/guideline-
+    - ema.europa.eu
   
   file_patterns:
     - '\.pdf$'
