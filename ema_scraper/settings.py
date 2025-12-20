@@ -7,6 +7,7 @@
 #     https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
 #     https://docs.scrapy.org/en/latest/topics/spider-middleware.html
 from pathlib import Path
+import logging
 
 BOT_NAME = "ema_scraper"
 
@@ -14,6 +15,11 @@ SPIDER_MODULES = ["ema_scraper.spiders"]
 NEWSPIDER_MODULE = "ema_scraper.spiders"
 
 
+LOG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+LOG_FILE = "crawl.log"
+LOG_ENABLED = True
+LOG_LEVEL = logging.INFO
+                   
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
 USER_AGENT = "Personal Project (mdi@mailfence.com)"
 

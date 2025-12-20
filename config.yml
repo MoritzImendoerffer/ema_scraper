@@ -1,6 +1,9 @@
 scraper:
   start_urls:
-    - https://www.ema.europa.eu/en/human-regulatory-overview/research-and-development/scientific-guidelines/multidisciplinary-guidelines/multidisciplinary-gene-therapy
+    - https://www.ema.europa.eu/en/human-regulatory-overview/research-development
+    - https://www.ema.europa.eu/en/human-regulatory-overview/marketing-authorisation
+    - https://www.ema.europa.eu/en/human-regulatory-overview/post-authorisation
+
   
   allowed_domains:
     - ema.europa.eu

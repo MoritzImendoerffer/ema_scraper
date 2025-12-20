@@ -9,6 +9,9 @@
 from scrapy.pipelines.files import FilesPipeline
 import pymongo
 import json
+import logging
+logger = logging.getLogger(__name__)
+
 class EmaScrapyPipeline:
     def process_item(self, item, spider):
         return item
@@ -37,7 +40,10 @@ class MongoPipeline:
         self.client.close()
 
     def process_item(self, item, spider):
-        self.db[self.collection_name].insert_one({key: value for key, value in item.items()})
+        try:
+            self.db[self.collection_name].insert_one({key: value for key, value in item.items()})
+        except Exception as e:
+            logger.warning(f"Saving to MongoDB failed: {e}")
         return item
 
 

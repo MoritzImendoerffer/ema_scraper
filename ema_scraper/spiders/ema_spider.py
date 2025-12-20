@@ -3,8 +3,7 @@ import scrapy
 from scrapy.loader import ItemLoader
 from scrapy.linkextractors import LinkExtractor
 from scrapy.spiders import CrawlSpider, Rule
-from ema_scraper.items import LinkItem, PageItem
-from ema_scraper.items import LinkType, DocType
+from ema_scraper.items import PageItem
 import regex as re
 import logging
 from config_loader import load_config
@@ -35,16 +34,6 @@ logger = logging.getLogger(__name__)
 config = load_config(pathlib.Path("config.yml"))
 scraper_config = config["scraper"]
 
-def html_parser(response):
-    print("parsed html")
-    
-def unknown_parser(response):
-    logger.warning(f"Content type not implemented: {str(response.headers.to_unicode_dict()['Content-Type']).split(';')[0]}")
-    return None    
-
-registered_parser = {
-    "text/html": html_parser
-}
 class EmaSpider(CrawlSpider):
     name = "ema"
     allowed_domains = []  # populated from config
@@ -52,7 +41,8 @@ class EmaSpider(CrawlSpider):
     max_nodes = 200
     visited_count = 0  
     
-    # TODO: add option to steer via settings or other means
+    # TODO: use config from config.yml
+    # used to detect file links which are stored in the item (LinkExtractor is using them)
     regex_file_patterns = [
         r"^https?://eur-lex\.europa\.eu/.*\?uri=.*:PDF$",
         r".*\.pdf",
@@ -78,7 +68,8 @@ class EmaSpider(CrawlSpider):
         Rule(LinkExtractor(allow=r'/'), callback='parse', follow=True),
     )
     
-    exluded_sections = ["Topics"]
+    exluded_sections = ["Topics",
+                        "Contact"]
 
     allowed_domains = scraper_config.get("allowed_domains", list())
     start_urls = scraper_config.get("start_urls", list())
@@ -153,6 +144,8 @@ class EmaSpider(CrawlSpider):
                 
                 # the individual sections defined in the sidebar
                 section_ids = [item.css("::attr(href)").get() for item in response.css(".bcl-inpage-navigation").css(".nav-item")]
+                if not section_ids:
+                    logger.warning(f"No section ids found for {response.url}")
                 all_links = []
                 page_links = []
                 file_links = []
@@ -180,7 +173,15 @@ class EmaSpider(CrawlSpider):
                     for _link in flat_links:
                         if re.findall(search_pattern, _link):
                             file_links.append(_link)
-                            
+                
+                # exclude unwanted pattern in links
+                excluded_file_links = []
+                for search_pattern in config["scraper"]["exclude_patterns"]:
+                    for _link in file_links:
+                        if re.findall(search_pattern, _link):
+                            excluded_file_links.append(_link)
+                file_links = list(set(file_links) - set(excluded_file_links))
+                
                 loader.add_value("file_links", file_links)
 
                 
