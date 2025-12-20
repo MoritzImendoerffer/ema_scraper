@@ -6,7 +6,10 @@ scraper:
 
   
   allowed_domains:
-    - ema.europa.eu
+    - www.ema.europa.eu
+
+  exclude_domains:
+    - www.ema.europa.eu/en/search
   
   file_patterns:
     - '\.pdf$'

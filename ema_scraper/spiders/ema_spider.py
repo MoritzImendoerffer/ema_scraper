@@ -173,6 +173,7 @@ class EmaSpider(CrawlSpider):
                     for _link in flat_links:
                         if re.findall(search_pattern, _link):
                             file_links.append(_link)
+                # TODO: use exclude domains
                 
                 # exclude unwanted pattern in links
                 excluded_page_links = []
@@ -182,7 +183,6 @@ class EmaSpider(CrawlSpider):
                             excluded_page_links.append(_link)
                 
                 loader.add_value("file_links", file_links)
-
                 
                 # follow all links in the page
                 page_links = list(set(flat_links) - set(file_links) - set(excluded_page_links))
