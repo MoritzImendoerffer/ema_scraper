@@ -37,7 +37,7 @@ scraper_config = config["scraper"]
 
 class EmaSitemapSpider(SitemapSpider):
     """
-    This might be simpler compared to my CrawlSpider approach
+    This might be simpler compared to my CrawlSpider approach. A learning and TODO for a future version.
     """
     name = "ema"
     sitemap_urls = ["https://www.ema.europa.eu/sitemap.xml"]
@@ -106,7 +106,10 @@ class EmaSpider(CrawlSpider):
     }
     
     def get_parser_for_url(self, url):
-        """Find parser by longest matching prefix, fallback to parse_default"""
+        """Find parser by longest matching prefix, fallback to parse_default
+        A possible improvement for the future:
+        Use a parser factory pattern to separate the parsing and parser selection part from the Spider.
+        """
         match_dict = {}
         for key in self.parser_map.keys():
             upath = urlparse(url).path.strip("/").split("/")
