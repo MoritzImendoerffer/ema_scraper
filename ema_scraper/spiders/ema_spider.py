@@ -3,7 +3,7 @@ import scrapy
 from scrapy.loader import ItemLoader
 from scrapy.linkextractors import LinkExtractor
 from scrapy.spiders import CrawlSpider, Rule, SitemapSpider, Request
-from ema_scraper.items import PageItem
+from ema_scraper.items import PageItem, PageItemSimple
 import regex as re
 import logging
 from config_loader import load_config
@@ -39,35 +39,71 @@ class EmaSitemapSpider(SitemapSpider):
     """
     This might be simpler compared to my CrawlSpider approach. A learning and TODO for a future version.
     """
-    name = "ema"
+    name = "ema-sitemap"
     sitemap_urls = ["https://www.ema.europa.eu/sitemap.xml"]
+    allowed_domains = scraper_config.get("allowed_domains", list())
     sitemap_rules = [
-        ("/en/human-regulatory-overview/", "parse_human_reg"),
+    (r'/en/', 'parse')]
+    
+    regex_file_patterns = [
+        r"^https?://eur-lex\.europa\.eu/.*\?uri=.*:PDF$",
+        r".*\.pdf",
+        r".*\.PDF",
+        r".*\.xlsx",
+        r".*\.XLSX",
+        r".*\.xls",
+        r".*\.XLS",
+        r".*\.docx",
+        r".*\.DOCX",
+        r".*\.doc",
+        r".*\.DOC",
+        r".*\.pptx",
+        r".*\.PPTX",
+        r".*\.ppt",
+        r".*\.PPT",
+        r".*\.zip",
+        r".*\.ZIP",
+        r".*/EN/TXT/PDF/.*"  # include eur-lex.europa.eu items if PDF
     ]
-
-    other_urls = []
-
+        
     async def start(self):
         async for item_or_request in super().start():
             yield item_or_request
-        for url in self.other_urls:
-            yield Request(url, self.parse_other)
-
-    def parse_human_epar(self, response):
-        pass
-
-    def parse_human_reg(self, response):
-        pass
-    
-    def parse_other(self, response):
-        pass
-
+            
+    def get_content_type(self, response):
+            try:
+                return str(response.headers.to_unicode_dict()['Content-Type']).split(';')[0]
+            except AttributeError:
+                pass
+            except KeyError:
+                return None
+            return None
+        
+    def parse(self, response):
+        url = response.url
+        logger.info(f"Crawled page {response.url}")
+        content_type = self.get_content_type(response)
+        loader = ItemLoader(item=PageItemSimple(), response=response)
+        
+            
+        loader.add_value('url', response.url)
+        loader.add_value('content_type', content_type)
+        if content_type == "text/html":
+            loader.add_value("html_raw", response.text) 
+        else:
+            for search_pattern in self.regex_file_patterns:
+                if re.findall(search_pattern, url):
+                    loader.add_value("file_links", response.url)
+        # else:
+        #     for search_pattern in self.regex_file_patterns:
+        #         if re.findall(search_pattern, url):
+        #             loader.add_value('file_links', url)
+        yield loader.load_item()
+        
 class EmaSpider(CrawlSpider):
     name = "ema"
     allowed_domains = []  # populated from config
     start_urls = []
-    max_nodes = 200
-    visited_count = 0  
     
     # TODO: use config from config.yml
     # used to detect file links which are stored in the item (LinkExtractor is using them)
