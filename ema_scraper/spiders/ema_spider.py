@@ -81,7 +81,7 @@ class EmaSitemapSpider(SitemapSpider):
         
     def parse(self, response):
         url = response.url
-        logger.info(f"Crawled page {response.url}")
+        #logger.info(f"Crawled page {response.url}")
         content_type = self.get_content_type(response)
         loader = ItemLoader(item=PageItemSimple(), response=response)
         

@@ -16,7 +16,7 @@ NEWSPIDER_MODULE = "ema_scraper.spiders"
 
 
 LOG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-LOG_FILE = "crawl.log"
+LOG_FILE = str(Path('~/Nextcloud/Datasets/ema_scraper/logs').expanduser().joinpath("crawl.log"))
 LOG_ENABLED = True
 LOG_LEVEL = logging.INFO
                    
