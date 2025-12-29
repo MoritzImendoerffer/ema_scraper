@@ -7,12 +7,14 @@
 # useful for handling different item types with a single interface
 #from itemadapter import ItemAdapter
 from scrapy.pipelines.files import FilesPipeline
+from pymongo.errors import DuplicateKeyError
+from scrapy.exceptions import DropItem
 import pymongo
 import json
 import logging
 logger = logging.getLogger(__name__)
 
-class EmaScrapyPipeline:
+class ItemPipeline:
     def process_item(self, item, spider):
         return item
 

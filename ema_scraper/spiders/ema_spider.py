@@ -2,13 +2,14 @@ import pathlib
 import scrapy
 from scrapy.loader import ItemLoader
 from scrapy.linkextractors import LinkExtractor
-from scrapy.spiders import CrawlSpider, Rule, SitemapSpider, Request
+from scrapy.spiders import CrawlSpider, Rule, SitemapSpider, Request, Spider
 from ema_scraper.items import PageItem, PageItemSimple
 import regex as re
 import logging
 from config_loader import load_config
 from scrapy.link import Link
 from urllib.parse import urlparse
+from ema_scraper import settings as my_settings
 
 """
 Scraper for ema.europa.eu
@@ -35,6 +36,59 @@ logger = logging.getLogger(__name__)
 config = load_config(pathlib.Path("config.yml"))
 scraper_config = config["scraper"]
 
+class EmaJsonSpider(Spider):
+    name = "ema-json-spider"
+    start_urls = ["https://www.ema.europa.eu/en/about-us/about-website/download-website-data-json-data-format"]
+    save_path = my_settings.BASE_PATH
+    save_file = "ema_docs.json"
+    def parse(self, response):
+        loader = ItemLoader(item=PageItemSimple(), response=response)
+        links = response.css("::attr(href)")
+        json_links = [item.get() for item in links if ".json" in item.get()]
+        loader.add_value("file_links", [response.urljoin(item) for item in json_links])
+        yield loader.load_item()
+        
+class EmaSitemapExtractor(Spider):
+    name = 'sitemap-extract'
+    allowed_domains = ['ema.europa.eu']
+    start_urls = ["https://www.ema.europa.eu/sitemap.xml"]
+    save_path = pathlib.Path("/home/moritz/Nextcloud/Datasets/ema_scraper/sitemap_urls")
+    save_file = "sitemap_urls.txt"
+    urls = []
+    
+    def parse(self, response):
+        # Remove namespaces for easier XPath
+        response.selector.remove_namespaces()
+        
+        # Get all nested sitemap URLs from sitemap index
+        sitemaps = response.xpath('//sitemap/loc/text()').getall()
+        
+        if sitemaps:
+            # This is a sitemap index, fetch all sitemaps
+            self.logger.info(f"Found {len(sitemaps)} sitemaps")
+            for sitemap_url in sitemaps:
+                yield scrapy.Request(sitemap_url, callback=self.parse_sitemap)
+        else:
+            # This is a regular sitemap with URLs
+            yield from self.parse_sitemap(response)
+    
+    def parse_sitemap(self, response):
+        response.selector.remove_namespaces()
+        urls = response.xpath('//url/loc/text()').getall()
+        
+        self.urls.extend(urls)
+        
+        for url in urls:
+            yield {'url': url}
+    
+    def closed(self, reason):
+        # Log total count when spider finishes
+        self.logger.info("Spider closed. Check stats for item_scraped_count")
+        with open(self.save_path.joinpath(self.save_file), 'w') as f:
+            f.write('\n'.join(self.urls))
+        
+        self.logger.info(f"Saved {len(self.urls)} URLs to sitemap_urls.txt")
+
 class EmaSitemapSpider(SitemapSpider):
     """
     This might be simpler compared to my CrawlSpider approach. A learning and TODO for a future version.
@@ -42,8 +96,16 @@ class EmaSitemapSpider(SitemapSpider):
     name = "ema-sitemap"
     sitemap_urls = ["https://www.ema.europa.eu/sitemap.xml"]
     allowed_domains = scraper_config.get("allowed_domains", list())
-    sitemap_rules = [
-    (r'/en/', 'parse')]
+    
+    # TODO: move all rules to settings
+    # rule to parse all english items
+    #sitemap_rules = [(r'/en/', 'parse')]
+    
+    # rule to parse all pages which are not in documents
+    #sitemap_rules = [(r'\/en\/(?!documents\/)', 'parse')]  # Match /en/ but not documents
+
+    # rule to parse all documents
+    sitemap_rules = [(r'\/en\/documents\/', 'parse')]
     
     regex_file_patterns = [
         r"^https?://eur-lex\.europa\.eu/.*\?uri=.*:PDF$",
@@ -79,8 +141,11 @@ class EmaSitemapSpider(SitemapSpider):
                 return None
             return None
         
-    def parse(self, response):
+    def parse(self, response):        
         url = response.url
+        cached = 'cached' in response.flags
+        if not cached:
+            self.logger.info(f"New download (not cached): {response.url}")
         #logger.info(f"Crawled page {response.url}")
         content_type = self.get_content_type(response)
         loader = ItemLoader(item=PageItemSimple(), response=response)
@@ -90,14 +155,11 @@ class EmaSitemapSpider(SitemapSpider):
         loader.add_value('content_type', content_type)
         if content_type == "text/html":
             loader.add_value("html_raw", response.text) 
-        else:
-            for search_pattern in self.regex_file_patterns:
-                if re.findall(search_pattern, url):
-                    loader.add_value("file_links", response.url)
-        # else:
-        #     for search_pattern in self.regex_file_patterns:
-        #         if re.findall(search_pattern, url):
-        #             loader.add_value('file_links', url)
+        #else:
+            # for search_pattern in self.regex_file_patterns:
+            #     if re.findall(search_pattern, url):
+            #         loader.add_value("file_links", response.url)
+            
         yield loader.load_item()
         
 class EmaSpider(CrawlSpider):
@@ -322,5 +384,10 @@ class EmaSpider(CrawlSpider):
         except Exception as e:
             logging.warning(f"Exception during parsing for {response.url} with error {e}")
         
+    def closed(self, reason):
+        stats = self.crawler.stats.get_stats()
+        self.logger.info(f"=== FULL STATS ===")
+        for key, value in stats.items():
+            self.logger.info(f"{key}: {value}")
 
     

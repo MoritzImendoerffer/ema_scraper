@@ -8,16 +8,20 @@
 #     https://docs.scrapy.org/en/latest/topics/spider-middleware.html
 from pathlib import Path
 import logging
-
-BOT_NAME = "ema_scraper"
+import os
+BOT_NAME = "ema-json-spider"
 
 SPIDER_MODULES = ["ema_scraper.spiders"]
 NEWSPIDER_MODULE = "ema_scraper.spiders"
 
-BASE_PATH = Path("~/Nextcloud/Datasets/ema_scraper")
+BASE_PATH = Path("~/Nextcloud/Datasets/ema_scraper").joinpath(BOT_NAME).expanduser()
+os.makedirs(BASE_PATH, exist_ok=True)
+    
 LOG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-LOG_PATH = Path(BASE_PATH.joinpath("logs")).expanduser()
-LOG_FILE = str(LOG_PATH.joinpath("crawl.log"))
+LOG_PATH = BASE_PATH.joinpath("logs")
+os.makedirs(LOG_PATH, exist_ok=True)
+LOG_FILE_PATH = LOG_PATH.joinpath("crawl_json_spider.log")
+LOG_FILE = str(LOG_FILE_PATH)
 LOG_ENABLED = True
 LOG_LEVEL = logging.INFO
 
@@ -79,8 +83,8 @@ DEPTH_PRIORITY = 1
 # files pipeline with sitemap spider and http cache not required
 ITEM_PIPELINES = {
     #"ema_scraper.pipelines.ItemPipeline:": 100,
-    "ema_scraper.pipelines.MongoPipeline": 200,
-    #"ema_scraper.pipelines.RedirectAwareFilesPipeline": 300,  
+    #"ema_scraper.pipelines.MongoPipeline": 200,
+    "ema_scraper.pipelines.RedirectAwareFilesPipeline": 300,  
 }
 
 # Enable and configure the AutoThrottle extension (disabled by default)
@@ -100,7 +104,7 @@ AUTOTHROTTLE_START_DELAY = 2
 # See https://docs.scrapy.org/en/latest/topics/downloader-middleware.html#httpcache-middleware-settings
 HTTPCACHE_ENABLED = True
 #HTTPCACHE_EXPIRATION_SECS = 0
-HTTPCACHE_DIR = str(Path(BASE_PATH.joinpath("cache")).expanduser())
+HTTPCACHE_DIR = str(BASE_PATH.joinpath("cache").expanduser())
 #HTTPCACHE_IGNORE_HTTP_CODES = []
 #HTTPCACHE_STORAGE = "scrapy.extensions.httpcache.FilesystemCacheStorage"
 
@@ -115,5 +119,5 @@ MONGO_DATABASE = "ema_scraper"
 
 # Important: enable redirect handling
 MEDIA_ALLOW_REDIRECTS = True
-FILES_STORE = str(Path(BASE_PATH.joinpath('files')).expanduser())
+FILES_STORE = str(BASE_PATH.joinpath("files").expanduser())
 FILES_URLS_FIELD = 'file_links'

@@ -1,4 +1,4 @@
-from ema_scraper.spiders.ema_spider import EmaSpider, EmaSitemapSpider
+from ema_scraper.spiders.ema_spider import EmaSpider, EmaSitemapSpider, EmaSitemapExtractor
 from scrapy.crawler import CrawlerProcess
 from scrapy.settings import Settings
 from ema_scraper import settings as my_settings
@@ -25,4 +25,5 @@ process = CrawlerProcess(settings=crawler_settings, install_root_handler=True)
 # )
 #process.crawl(EmaSpider)
 process.crawl(EmaSitemapSpider)
+#process.crawl(EmaSitemapExtractor, settings={'LOG_FILE': str(my_settings.LOG_PATH.joinpath("xml_spider.log"))})
 process.start()
