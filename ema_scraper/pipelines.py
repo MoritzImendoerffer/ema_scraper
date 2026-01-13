@@ -43,7 +43,7 @@ class MongoPipeline:
 
     def process_item(self, item, spider):
         try:
-            self.db[self.collection_name].insert_one({key: value for key, value in item.items()})
+            self.db[self.collection_name].update_one({key: value for key, value in item.items()}, upsert=True)
         except Exception as e:
             logger.warning(f"Saving to MongoDB failed: {e}")
         return item

@@ -1,13 +1,13 @@
 from pymongo import MongoClient
-import regex as re
-
-MONGI_URL = "localhost:21017"
+ 
+# CONFIGURATION
+MONGO_URI = "mongodb://localhost:27017/"
 MONGO_DB = "ema_scraper"
 MONGO_COL = "web_items"
 
 def connect():
     """Connect to MongoDB and return collection"""
-    client = MongoClient(f"mongodb://{MONGI_URL}")
+    client = MongoClient(MONGO_URI)
     db = client[MONGO_DB]
     collection = db[MONGO_COL]
     print(f"Connected to {MONGO_DB}.{MONGO_COL}")
@@ -31,8 +31,3 @@ def get_keys_with_regex(collection, key, pattern, inverse=False):
     result = collection.find(query)
     
     return result
-    
-if __name__ == "__main__":
-    mc = connect()
-    
-    print("Done")

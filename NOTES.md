@@ -1,21 +1,27 @@
 # Scraping Strategy
 
-## Main Body
-The main body can consist of:
+## how many different html classes are there?
+check class "main_content_wrapper" and within class, get all other classes
 
-### Overall concept
+ema-node-content-wrapper node-sections
 
-### Content and format
+skip ema-embedded-view?
 
-## Timing of publication
+## Parsing of possible Videos links in /eu/events/
+E.g. a button  with title "Show external content" -> Then Iframe with e.g. embedded youtube video. Or directly from
+data-location="https://webtools.europa.eu/crs/iframe?addconsent=youtube.com&amp;oriurl=https%3A%2F%2Fwww.youtube.com%2Fembed%2Fvideoseries%3Flist%3DPL7K5dNgKnawbgoFUuaWKheqiRBVP3WcBT"
 
-## Language versions
+## glossary terms
+this very simple layout should be parsed separately
+https://www.ema.europa.eu/en/glossary-terms/adjunct
 
+How to deal with parent pages?
+https://www.ema.europa.eu/en/about-us/glossaries/glossary-regulatory-terms
 
-# Important Sites
+## Expand collapsed accordeon
+class="accordion-button collapsed"
 
-https://www.ema.europa.eu/en/medicines/download-medicine-data
-
+## Deal with table class (e.g. after exapnding an accordion)
 
 
 ## Very Important!!!

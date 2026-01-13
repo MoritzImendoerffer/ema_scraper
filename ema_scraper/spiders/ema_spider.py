@@ -23,7 +23,7 @@ Strategy:
 5) Files should be also nodes that means each file has a mongodb entry with metadata and link to the file
 6) PDFs should be parsed but for now just focus on html
 8) Treat external content (e.g. Eudralex) as node but it remains a stump for now. Parsing eudralex is a focus for later.
-9) Is it better to parse the html logic while scraping, or scrape raw html into mongoDB and later use e.g Beautiful soup with the mongoDB
+9) Is it better to parse the html logic while scraping, or scrape raw html into mongoD^ and later use e.g Beautiful soup with the mongoDB
    I do have more flexibility. E.g. there is an item called <article class=content-with-sidebar node ema-general--full ...
    How many different articles are there? Which sections to scrape? E.g. Topics leads to a search page for a database but I do have the json info
    from https://www.ema.europa.eu/en/about-us/about-website/download-website-data-json-data-format
@@ -105,29 +105,20 @@ class EmaSitemapSpider(SitemapSpider):
     #sitemap_rules = [(r'\/en\/(?!documents\/)', 'parse')]  # Match /en/ but not documents
 
     # rule to parse all documents
-    sitemap_rules = [(r'\/en\/documents\/', 'parse')]
+    #sitemap_rules = [(r'\/en\/documents\/', 'parse_docs')]
     
     regex_file_patterns = [
-        r"^https?://eur-lex\.europa\.eu/.*\?uri=.*:PDF$",
-        r".*\.pdf",
-        r".*\.PDF",
-        r".*\.xlsx",
-        r".*\.XLSX",
-        r".*\.xls",
-        r".*\.XLS",
-        r".*\.docx",
-        r".*\.DOCX",
-        r".*\.doc",
-        r".*\.DOC",
-        r".*\.pptx",
-        r".*\.PPTX",
-        r".*\.ppt",
-        r".*\.PPT",
-        r".*\.zip",
-        r".*\.ZIP",
-        r".*/EN/TXT/PDF/.*"  # include eur-lex.europa.eu items if PDF
-    ]
-        
+        # 1. Complex URL structures for EUR-LEX
+        # (?i) makes it case-insensitive. Matches both patterns you had for EUR-LEX.
+        r"(?i)^https?://eur-lex\.europa\.eu/.*(?:\?uri=.*:PDF$|/EN/TXT/PDF/)",
+
+        # 2. Standard File Extensions
+        # (?i) = Case insensitive (matches .pdf and .PDF)
+        # (a|b|c) = Grouping options
+        # x? = The 'x' is optional (matches both .doc and .docx, .xls and .xlsx)
+        r"(?i).*\.(pdf|zip|docx?|xlsx?|pptx?)$"
+    ] 
+    
     async def start(self):
         async for item_or_request in super().start():
             yield item_or_request
@@ -140,7 +131,7 @@ class EmaSitemapSpider(SitemapSpider):
             except KeyError:
                 return None
             return None
-        
+
     def parse(self, response):        
         url = response.url
         cached = 'cached' in response.flags
@@ -153,12 +144,13 @@ class EmaSitemapSpider(SitemapSpider):
             
         loader.add_value('url', response.url)
         loader.add_value('content_type', content_type)
+        
         if content_type == "text/html":
             loader.add_value("html_raw", response.text) 
-        #else:
-            # for search_pattern in self.regex_file_patterns:
-            #     if re.findall(search_pattern, url):
-            #         loader.add_value("file_links", response.url)
+        else:
+            for search_pattern in self.regex_file_patterns:
+                if re.findall(search_pattern, url):
+                    loader.add_value("file_links", response.url)
             
         yield loader.load_item()
         
