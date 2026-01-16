@@ -34,14 +34,6 @@ vectorizer = TfidfVectorizer()
 X = vectorizer.fit_transform(token_strings)
 print(f"Done. Extracted {len(results)} profiles, {X.shape[1]} features")
 
-# Vectorize
-token_strings = [" ".join(profile[1].tokens) for profile in results]
-
-vectorizer = CountVectorizer(lowercase=False, max_features=1000)
-X = vectorizer.fit_transform(token_strings)
-print(f"Done. Extracted {len(results)} profiles, {X.shape[1]} features")
-
-
 umap_n_neighbors=20
 umap_min_dist=1e-3
 umap_spread=2.0
@@ -49,7 +41,7 @@ umap_n_epochs=500
 umap_random_state=42
 
 hdbscan_min_samples=25
-hdbscan_min_cluster_size=5
+hdbscan_min_cluster_size=10
 hdbscan_max_cluster_size=1000
 hdbscan_cluster_selection_method="leaf"
 
