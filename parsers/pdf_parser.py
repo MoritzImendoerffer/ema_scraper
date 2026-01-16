@@ -1,9 +1,5 @@
 """
-Document Style Extraction for PDF Classification
-
-Extracts font/style features from PDFs to enable unsupervised clustering
-of document types. Produces tokenized representations suitable for 
-sklearn's CountVectorizer and clustering algorithms like DBSCAN.
+Document Extraction for PDF Classification and Parsing
 """
 
 from dataclasses import dataclass, field, asdict
@@ -11,7 +7,13 @@ from pathlib import Path
 import os
 import fitz
 from typing import Optional
-
+# pymupdf importing order is important
+import pymupdf.layout
+import pymupdf4llm
+import pymupdf
+from abc import abstractmethod
+import logging
+logger = logging.getLogger(__name__)
 os.environ["TESSDATA_PREFIX"] = "/usr/share/tesseract-ocr/5/tessdata/"
 
 @dataclass
@@ -46,8 +48,95 @@ class StyleProfile:
     def from_dict(cls, data: dict) -> "StyleProfile":
         """Deserialize from MongoDB document."""
         return cls(**data)
+    
+@dataclass
+class PdfDocument:
+    json: dict = field(default_factory=dict)
+    markdown: str = field(default_factory=str)
+    doc_id: str = field(default_factory=str)
+    doc: Optional[fitz.Document] = None
+    error: str = field(default_factory=str)
+    parsed_with: str = field(default_factory=str)
+    
+class BasePdfParser:
+    """
+    Base PDF parser class.
+    """
+    def __init__(self, n_pages: Optional[int]=None):
+        self.n_pages = n_pages
+        
+    def _is_valid_pdf(self, data: bytes) -> bool:
+        """Check if data starts with PDF magic bytes."""
+        return data[:5] == b'%PDF-'
+    
+    def _get_doc(self, source: str | Path | bytes, doc_id: str) -> PdfDocument:
+        # Determine input type and get bytes
+        if isinstance(source, bytes):
+            pdf_bytes = source
+            source_path = None
+        else:
+            source_path = str(source)
+            try:
+                with open(source, 'rb') as f:
+                    pdf_bytes = f.read()
+            except Exception as e:
+                logger.warning(f"Failed to read {e}")
+                return PdfDocument(
+                    doc_id=doc_id,
+                    error=f"Failed to read file: {e}"
+                )
 
+        # Validate PDF magic bytes
+        if not self._is_valid_pdf(pdf_bytes):
+            return PdfDocument(
+                doc_id=doc_id,
+                error="Not a valid PDF file"
+            )
 
+        try:
+            doc = pymupdf.open(stream=pdf_bytes, filetype="pdf")
+            return PdfDocument(
+                doc_id=doc_id,
+                doc = doc,
+                parsed_with=f"pymupdf4llm {pymupdf4llm.VERSION}"
+            )
+        except Exception as e:
+            logger.warning(f"Failed to open PDF: {str(e)}")
+            return PdfDocument(
+                doc_id=doc_id,
+                error=f"Failed to open PDF: {str(e)}"
+            )
+            
+    @abstractmethod
+    def parse(self, *args, **kwargs) -> PdfDocument:
+        raise NotImplementedError
+    
+class PyMuPdfParser(BasePdfParser):
+
+    def parse(self,
+              source: str | Path | bytes, 
+              doc_id: str,
+              to_markdown: bool=True, 
+              to_json: bool=True,
+              save_doc: bool=False
+              ) -> PdfDocument:
+
+        pymupdf.layout.activate()
+        doc = self._get_doc(source, doc_id)
+        if to_markdown:
+            md = pymupdf4llm.to_markdown(doc.doc)
+            doc.markdown = md
+        if to_json:
+            pymupdf.layout.activate()
+            json = pymupdf4llm.to_json(doc.doc)
+            doc.json = json
+            
+        if not save_doc:
+            doc.doc = None
+        
+        return doc
+        
+        
 class DocumentStyleExtractor:
     """
     Extracts style features from PDF documents.
