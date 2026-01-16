@@ -5,7 +5,6 @@ Document Extraction for PDF Classification and Parsing
 from dataclasses import dataclass, field, asdict
 from pathlib import Path
 import os
-import fitz
 from typing import Optional
 # pymupdf importing order is important
 import pymupdf.layout
@@ -54,7 +53,7 @@ class PdfDocument:
     json: dict = field(default_factory=dict)
     markdown: str = field(default_factory=str)
     doc_id: str = field(default_factory=str)
-    doc: Optional[fitz.Document] = None
+    doc: Optional[pymupdf.Document] = None
     error: str = field(default_factory=str)
     parsed_with: str = field(default_factory=str)
     
@@ -196,7 +195,7 @@ class DocumentStyleExtractor:
             )
 
         try:
-            doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+            doc = pymupdf.open(stream=pdf_bytes, filetype="pdf")
         except Exception as e:
             return StyleProfile(
                 doc_id=doc_id,
@@ -250,7 +249,7 @@ class DocumentStyleExtractor:
             for src, did in zip(sources, doc_ids)
         ]
 
-    def _extract_styles(self, doc: fitz.Document) -> tuple[dict, list, list, int]:
+    def _extract_styles(self, doc: pymupdf.Document) -> tuple[dict, list, list, int]:
         """
         Core extraction logic. Iterates through document spans.
         
