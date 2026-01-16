@@ -574,7 +574,7 @@ class EmaPageParser:
         
         # Find all listing items/cards within
         items = []
-        for item_el in el.find_all(class_=lambda c: c and ('listing-item' in c or c == 'card')):
+        for item_el in el.find_all(class_=lambda x: x and ('listing-item' in x or x == 'card')):
             card = self._parse_card(item_el)
             if card:
                 items.append(card)
@@ -912,7 +912,6 @@ if __name__ == '__main__':
     import json
     import sys
     
-    # Simple test with sample HTML
     sample_html = """
     <main class="main-content-wrapper">
         <h1>Test Page</h1>
