@@ -8,14 +8,15 @@ from sklearn.feature_extraction.text import CountVectorizer
 import pickle
 
 
+from utils.cache_utils import get_files_from_cache, get_pdfs_from_cache
 
 BASE_PATH = settings.BASE_PATH.expanduser()
 CACHE_PATH = BASE_PATH.joinpath("cache").joinpath("ema-sitemap")
 
 # Worker function (must be at module level for pickling)
 def extract_pdf(args):
-    root, url, n_pages = args
-    extractor = DocumentStyleExtractor(n_pages=n_pages)
+    root, url = args
+    extractor = DocumentStyleExtractor()
     try:
         with open(root.joinpath("response_body"), "rb") as r:
             response = r.read()
@@ -25,17 +26,8 @@ def extract_pdf(args):
         return (root, None)
 
 # First pass: collect PDF entries
-pdf_entries = []
-failed = []
-for root, directories, filenames in CACHE_PATH.walk():
-    if filenames and "meta" in filenames:
-        try:
-            with open(root.joinpath("meta"), "r") as f:
-                meta = ast.literal_eval(f.read())
-            if meta.get("url", "").endswith(".pdf"):
-                pdf_entries.append((root, meta["url"], 10))  # 10 = n_pages
-        except Exception as e:
-            failed.append((root, e))
+pdf_entries, failed = get_pdfs_from_cache()
+
 # Second pass: parallel extraction
 results = []
 with Pool(cpu_count()) as pool:
