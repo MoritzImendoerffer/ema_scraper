@@ -1,12 +1,15 @@
 from ema_scraper import settings
 import ast
+from typing import List, Union, Tuple
+from pathlib import Path
 
 BASE_PATH = settings.BASE_PATH.expanduser()
 CACHE_PATH = BASE_PATH.joinpath("cache").joinpath("ema-sitemap")
 
+PdfEntry = Tuple[Path, str]          # (cache_path, url)
+FailedEntry = Tuple[Path, Exception] # (cache_path, error)
 
-
-def get_pdfs_from_cache():
+def get_pdfs_from_cache() -> Tuple[List[PdfEntry], List[FailedEntry]]:
     """
     Returns paths to all pdf files in the scrapy cache
     """
@@ -23,7 +26,7 @@ def get_pdfs_from_cache():
                 failed.append((root, e))
     return pdf_entries, failed
 
-def get_files_from_cache(file_name="pdf_profile.pickle"):
+def get_files_from_cache(file_name: str) -> List[str]:
     """
     Returns paths to all files in the scrapy cache
     """
